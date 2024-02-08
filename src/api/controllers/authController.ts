@@ -1,13 +1,23 @@
-import {userService} from '../services'
 import {Request, Response} from 'express'
+import {authService} from "../services";
 
 class AuthController {
-    async getUser(req: Request, res: Response) {
+    async entryPoint(req: Request, res: Response) {
+        const {username} = req.body
+
         try {
-            // return await userService.getUser(req, res)
+            await authService.createEntryPointUser(username, res)
         } catch (error) {
             console.error(error)
-            return res.status(500).json({error})
+            res.status(500).json({message: "Entry_Point: Internal"})
+        }
+    }
+
+    async loginVerify(req: Request, res: Response) {
+        try {
+            await authService.verifyUser(req.body, res)
+        } catch (error) {
+            console.error(error)
         }
     }
 }

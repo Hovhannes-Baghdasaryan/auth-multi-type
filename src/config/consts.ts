@@ -1,5 +1,5 @@
-export const AUTH_TYPE = {
-    NICKNAME: "NICKNAME",
-    EMAIL: "EMAIL",
-    PHONE: "PHONE",
+export enum E_AUTH_TYPE {
+    NICKNAME = "nickname",
+    EMAIL = "mail",
+    PHONE = "phone",
 }

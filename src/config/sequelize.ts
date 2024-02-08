@@ -31,7 +31,7 @@ const assertDatabaseConnectionOk = async () => {
 
 export const initSequelize = async () => {
     await assertDatabaseConnectionOk()
-    await sequelize.sync()
+    await sequelize.sync({alter: true})
 }
 
 export default sequelize;

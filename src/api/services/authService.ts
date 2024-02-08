@@ -1,26 +1,68 @@
+import {Response} from "express"
+import codeService from "./codeService.ts";
+import {AUTH_TYPE} from "../../config/env.ts";
+import {E_AUTH_TYPE} from "../../config/consts.ts";
+import {I_User, I_UserVerifyOtpPayload} from "../dto/userDto.ts";
 import {userRepository} from "../../data-layer/repository/sequilize";
-import {Request, Response} from "express"
-import {I_UserById} from "../../data-layer/repository/sequilize/users/dto.ts";
 
 class AuthService {
-    private readonly _userRepository = userRepository
+    async createEntryPointUser(username: string, res: Response): Promise<Response> {
+        try {
+            const user = await userRepository.findUserByUsername(username)
 
-    async getUser(req: Request, res: Response) {
-        const userId = req.params.id
-        const user = await this._userRepository.getUserById(Number(userId))
-        if (!user) {
-            console.error("User not found")
-            return res.status(404).json({message: 'User not found'})
+            if (AUTH_TYPE === E_AUTH_TYPE.NICKNAME) {
+                if(!user) {
+                    await userRepository.createNewUser(username)
+                    console.log("User with nickname created successfully")
+                }
+
+                return res.status(200).json({message: `${username}`})
+            }
+
+            const otp = await codeService.sendOtp(username, AUTH_TYPE, res)
+
+            if (!user) {
+                await userRepository.createNewUser(username, otp)
+            } else {
+                await userRepository.resendOtpUpdate(user.id, otp!)
+            }
+
+            console.info(`New Otp Sent to: ${username}`)
+
+            return res.status(200).json({message: `New Otp Sent to: ${username}`})
+        } catch (error) {
+            console.error(`AuthServiceEntryPoint: ${error}`)
+            return res.status(500).json({message: `AuthServiceEntryPoint: Internal`})
         }
+    }
 
-        console.info("User found")
+    async verifyUser(verifyUserPayload: I_UserVerifyOtpPayload, res: Response): Promise<Response<I_User>> {
+        try {
+            const user = await userRepository.findUserByUsername(verifyUserPayload.username)
+            if (!user) {
+                console.error("AuthServiceLoginVerify: User not found")
+                return res.status(404).json({message: "User not found"})
+            }
 
-        return res.status(200).json({
-            first_name: user.first_name,
-            last_name: user.last_name,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
-        } as I_UserById)
+            if (user?.otp !== verifyUserPayload.otp) {
+                console.error("AuthServiceLoginVerify: OTP not valid")
+                return res.status(400).json({message: "Otp Not valid"})
+            }
+
+            await userRepository.verifiedUser(user.id, {
+                firstName: verifyUserPayload.firstName,
+                lastName: verifyUserPayload.lastName
+            })
+
+            return res.status(200).json({
+                id: 5,
+                firstName: verifyUserPayload.firstName,
+                lastName: verifyUserPayload.lastName,
+            } as I_User)
+        } catch (error) {
+            console.error(`AuthServiceLoginVerify: ${error}`)
+            return res.status(500).json({message: `AuthServiceLoginVerify: Internal`})
+        }
     }
 }
 

@@ -1,22 +1,35 @@
 import {DataTypes, Sequelize} from "sequelize";
-import {AuthorInstance} from "./types.ts";
+import {UserInstance} from "./types.ts";
 
 export default (sequelize: Sequelize) => {
-    return sequelize.define<AuthorInstance>("Users", {
+    return sequelize.define<UserInstance>("Users", {
         id: {
-            type: DataTypes.CHAR(36),
+            type: DataTypes.INTEGER,
             primaryKey: true,
             allowNull: false,
-            unique: true
+            autoIncrement: true,
+        },
+        username: {
+            type: DataTypes.STRING,
+            allowNull: false
         },
         first_name: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         last_name: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
+        otp: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        isVerified: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: false
+        }
     })
 }
 

@@ -1,12 +1,29 @@
 import {UserModal} from "../../../models/sequilize";
 import sequelize from "../../../../config/sequelize.ts";
-import {I_UserById} from "./dto.ts";
+import {UserInstance} from "../../../models/sequilize/users/types.ts";
+import {I_UserUpdatePayload} from "../../../../api/dto/userDto.ts";
 
 class UserRepository {
-    _userRepository = UserModal(sequelize)
+    private readonly _userRepository = UserModal(sequelize)
 
-    async getUserById(userId: number): Promise<I_UserById | null> {
+    async findUserById(userId: number): Promise<UserInstance | null> {
         return await this._userRepository.findByPk(userId)
+    }
+
+    async findUserByUsername(username: string): Promise<UserInstance | null> {
+        return await this._userRepository.findOne({where: {username}})
+    }
+
+    async createNewUser(username: string, otp?: string): Promise<UserInstance | null> {
+        return await this._userRepository.create({username, otp})
+    }
+
+    async verifiedUser(userId: number, verifiedUserPayload: I_UserUpdatePayload): Promise<void> {
+        await this._userRepository.update({isVerified: true, first_name: verifiedUserPayload.firstName, last_name: verifiedUserPayload.lastName, otp: null}, {where: {id: userId}})
+    }
+
+    async resendOtpUpdate(userId: number, newOtp: string): Promise<void> {
+        await this._userRepository.update({otp: newOtp}, {where: {id: userId}})
     }
 }
 
