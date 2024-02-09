@@ -1,6 +1,6 @@
 import {Sequelize} from "sequelize";
 import {DB_HOST, DB_PORT, DB_USER, DB_NAME, DB_PASSWORD} from "./env.ts";
-import mysql from "mysql2";
+import postgres from "pg";
 import * as modelDefiners from "../data-layer/models/sequilize";
 
 const sequelize = new Sequelize({
@@ -9,8 +9,8 @@ const sequelize = new Sequelize({
     username: DB_USER,
     password: DB_PASSWORD,
     database: DB_NAME,
-    dialect: "mysql",
-    dialectModule: mysql,
+    dialect: "postgres",
+    dialectModule: postgres
 })
 
 for (const modelDefiner of Object.values(modelDefiners)) {

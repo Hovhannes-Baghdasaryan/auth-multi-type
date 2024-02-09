@@ -6,8 +6,8 @@ import {I_UserUpdatePayload} from "../../../../api/dto/userDto.ts";
 class UserRepository {
     private readonly _userRepository = UserModal(sequelize)
 
-    async findUserById(userId: number): Promise<UserInstance | null> {
-        return await this._userRepository.findByPk(userId)
+    async findUserById(id: number): Promise<UserInstance | null> {
+        return await this._userRepository.findByPk(id)
     }
 
     async findUserByUsername(username: string): Promise<UserInstance | null> {
@@ -18,17 +18,17 @@ class UserRepository {
         return await this._userRepository.create({username, otp: newOtp})
     }
 
-    async verifiedUser(userId: number, verifiedUserPayload: I_UserUpdatePayload): Promise<void> {
+    async verifiedUser(id: number, verifiedUserPayload: I_UserUpdatePayload): Promise<void> {
         await this._userRepository.update({
             isVerified: true,
             first_name: verifiedUserPayload.firstName,
             last_name: verifiedUserPayload.lastName,
             otp: null
-        }, {where: {id: userId}})
+        }, {where: {id}})
     }
 
-    async updateOtp(userId: number, newOtp: string): Promise<void> {
-        await this._userRepository.update({otp: newOtp, isVerified: false}, {where: {id: userId}})
+    async updateOtp(id: number, newOtp: string): Promise<void> {
+        await this._userRepository.update({otp: newOtp, isVerified: false}, {where: {id}})
     }
 }
 

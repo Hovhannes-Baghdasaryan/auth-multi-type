@@ -2,7 +2,7 @@ import {DataTypes, Sequelize} from "sequelize";
 import {UserInstance} from "./types.ts";
 
 export default (sequelize: Sequelize) => {
-    return sequelize.define<UserInstance>("Users", {
+    return sequelize.define<UserInstance>("users", {
         id: {
             type: DataTypes.INTEGER,
             primaryKey: true,

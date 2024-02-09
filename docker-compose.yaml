@@ -2,27 +2,26 @@ version: '3.8'
 
 services:
   db:
-    image: mysql:5.7
+    image: postgres:latest
     restart: always
-    container_name: mysql-docker
+    container_name: postgres-docker
     environment:
-      MYSQL_DATABASE: 'n2g-db'
-      MYSQL_USER: 'user'
-      MYSQL_PASSWORD: 'password'
-      MYSQL_ROOT_PASSWORD: 'password'
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - '3306:3306'
-    expose:
-      - '3306'
+      - '5433:5432'
+    networks:
+      - n2g-network
     volumes:
-      - n2g-database:/var/lib/mysql
+      - postgres-data:/var/lib/postgresql/data
 
-  app: 
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: express-docker
-    restart: always  
+    restart: always
     env_file:
       - ./.env
     environment:
@@ -35,8 +34,15 @@ services:
     ports:
       - '3001:3001'
     depends_on:
-      - db   
+      - db
+    networks:
+      - n2g-network
+    volumes:
+      - n2g-database:/app/db
+
+networks:
+  n2g-network:
 
 volumes:
+  postgres-data:
   n2g-database:
-  n2g-express:
