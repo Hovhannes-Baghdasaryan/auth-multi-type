@@ -1,5 +1,6 @@
 import {Request, Response} from 'express'
 import {authService} from "../services";
+import {validationResult} from 'express-validator'
 
 class AuthController {
     async entryPoint(req: Request, res: Response) {
@@ -15,6 +16,12 @@ class AuthController {
 
     async loginVerify(req: Request, res: Response) {
         try {
+            const valResult = validationResult(req)
+
+            if (!valResult.isEmpty()) {
+                return res.status(400).json({ message: valResult.array() })
+            }
+
             await authService.verifyUser(req.body, res)
         } catch (error) {
             console.error(error)
