@@ -14,15 +14,20 @@ class UserRepository {
         return await this._userRepository.findOne({where: {username}})
     }
 
-    async createNewUser(username: string, otp?: string): Promise<UserInstance | null> {
-        return await this._userRepository.create({username, otp})
+    async createNewUser(username: string, newOtp?: string): Promise<UserInstance | null> {
+        return await this._userRepository.create({username, otp: newOtp})
     }
 
     async verifiedUser(userId: number, verifiedUserPayload: I_UserUpdatePayload): Promise<void> {
-        await this._userRepository.update({isVerified: true, first_name: verifiedUserPayload.firstName, last_name: verifiedUserPayload.lastName, otp: null}, {where: {id: userId}})
+        await this._userRepository.update({
+            isVerified: true,
+            first_name: verifiedUserPayload.firstName,
+            last_name: verifiedUserPayload.lastName,
+            otp: null
+        }, {where: {id: userId}})
     }
 
-    async resendOtpUpdate(userId: number, newOtp: string): Promise<void> {
+    async updateOtp(userId: number, newOtp: string): Promise<void> {
         await this._userRepository.update({otp: newOtp}, {where: {id: userId}})
     }
 }

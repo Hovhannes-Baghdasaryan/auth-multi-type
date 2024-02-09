@@ -3,13 +3,13 @@ import {authService} from "../services";
 
 class AuthController {
     async entryPoint(req: Request, res: Response) {
-        const {username} = req.body
-
         try {
+            const {username} = req.body
+
             await authService.createEntryPointUser(username, res)
         } catch (error) {
             console.error(error)
-            res.status(500).json({message: "Entry_Point: Internal"})
+            res.status(500).json({message: "EntryPoint: Internal"})
         }
     }
 
@@ -18,6 +18,7 @@ class AuthController {
             await authService.verifyUser(req.body, res)
         } catch (error) {
             console.error(error)
+            res.status(500).json({message: "LoginVerify: Internal"})
         }
     }
 }

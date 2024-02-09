@@ -10,26 +10,35 @@ class AuthService {
         try {
             const user = await userRepository.findUserByUsername(username)
 
-            if (AUTH_TYPE === E_AUTH_TYPE.NICKNAME) {
-                if(!user) {
+            switch (AUTH_TYPE) {
+                case E_AUTH_TYPE.NICKNAME:
+                    if (user) {
+                        console.error(`AuthServiceEntryPoint: Already exists${username}`)
+                        return res.status(400).json({message: `AuthServiceEntryPoint: User with nickname ${username} already exists`})
+                    }
+
                     await userRepository.createNewUser(username)
-                    console.log("User with nickname created successfully")
-                }
+                    console.info("User with nickname created successfully")
 
-                return res.status(200).json({message: `${username}`})
+                    return res.status(200).json({message: `${username}`})
+
+                case E_AUTH_TYPE.PHONE:
+                case E_AUTH_TYPE.EMAIL:
+                    const otp = await codeService.sendOtp(username, AUTH_TYPE, res)
+
+                    if (!user) {
+                        await userRepository.createNewUser(username, otp!)
+                    } else {
+                        await userRepository.updateOtp(user.id, otp!)
+                    }
+
+                    console.info(`New OTP Sent to: ${username}`)
+
+                    return res.status(200).json({message: `New OTP Sent to: ${username}`})
+                default:
+                    console.info("AuthServiceEntryPoint: Auth Type is not valid")
+                    return res.status(500).json({message: "AuthServiceEntryPoint: Auth Type is not valid"})
             }
-
-            const otp = await codeService.sendOtp(username, AUTH_TYPE, res)
-
-            if (!user) {
-                await userRepository.createNewUser(username, otp)
-            } else {
-                await userRepository.resendOtpUpdate(user.id, otp!)
-            }
-
-            console.info(`New Otp Sent to: ${username}`)
-
-            return res.status(200).json({message: `New Otp Sent to: ${username}`})
         } catch (error) {
             console.error(`AuthServiceEntryPoint: ${error}`)
             return res.status(500).json({message: `AuthServiceEntryPoint: Internal`})
@@ -39,14 +48,23 @@ class AuthService {
     async verifyUser(verifyUserPayload: I_UserVerifyOtpPayload, res: Response): Promise<Response<I_User>> {
         try {
             const user = await userRepository.findUserByUsername(verifyUserPayload.username)
+
             if (!user) {
                 console.error("AuthServiceLoginVerify: User not found")
                 return res.status(404).json({message: "User not found"})
             }
 
-            if (user?.otp !== verifyUserPayload.otp) {
-                console.error("AuthServiceLoginVerify: OTP not valid")
-                return res.status(400).json({message: "Otp Not valid"})
+            switch (AUTH_TYPE) {
+                case E_AUTH_TYPE.PHONE:
+                case E_AUTH_TYPE.EMAIL:
+                    if (user?.otp !== verifyUserPayload.otp) {
+                        console.error("AuthServiceLoginVerify: OTP not valid")
+                        res.status(400).json({message: "OTP Not valid"})
+                    }
+                    break;
+                default:
+                    console.info("AuthServiceEntryPoint: Auth Type is not valid")
+                    res.status(500).json({message: "AuthServiceEntryPoint: Auth Type is not valid"})
             }
 
             await userRepository.verifiedUser(user.id, {
@@ -55,7 +73,7 @@ class AuthService {
             })
 
             return res.status(200).json({
-                id: 5,
+                id: user.id,
                 firstName: verifyUserPayload.firstName,
                 lastName: verifyUserPayload.lastName,
             } as I_User)

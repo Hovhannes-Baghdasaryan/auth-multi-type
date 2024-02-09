@@ -19,11 +19,6 @@ class CodeService {
                     console.info("Mail sent successfully")
 
                     return newOtp
-
-                    break
-                default:
-                    console.info("Auth Type is not valid")
-                    res.status(500).json({message: "Auth Type is not valid"})
             }
         } catch (error) {
             console.error(error)
