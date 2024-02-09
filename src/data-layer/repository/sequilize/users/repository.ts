@@ -28,7 +28,7 @@ class UserRepository {
     }
 
     async updateOtp(userId: number, newOtp: string): Promise<void> {
-        await this._userRepository.update({otp: newOtp}, {where: {id: userId}})
+        await this._userRepository.update({otp: newOtp, isVerified: false}, {where: {id: userId}})
     }
 }
 

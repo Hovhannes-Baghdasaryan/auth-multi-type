@@ -4,6 +4,7 @@ import {AUTH_TYPE} from "../../config/env.ts";
 import {E_AUTH_TYPE} from "../../config/consts.ts";
 import {I_User, I_UserVerifyOtpPayload} from "../dto/userDto.ts";
 import {userRepository} from "../../data-layer/repository/sequilize";
+import {compareWithEncrypted} from "../../util/hash.ts";
 
 class AuthService {
     async createEntryPointUser(username: string, res: Response): Promise<Response> {
@@ -48,29 +49,30 @@ class AuthService {
     async verifyUser(verifyUserPayload: I_UserVerifyOtpPayload, res: Response): Promise<Response<I_User>> {
         try {
             const user = await userRepository.findUserByUsername(verifyUserPayload.username)
-
             if (!user) {
                 console.error("AuthServiceLoginVerify: User not found")
                 return res.status(404).json({message: "User not found"})
             }
 
-            switch (AUTH_TYPE) {
-                case E_AUTH_TYPE.PHONE:
-                case E_AUTH_TYPE.EMAIL:
-                    if (user?.otp !== verifyUserPayload.otp) {
-                        console.error("AuthServiceLoginVerify: OTP not valid")
-                        res.status(400).json({message: "OTP Not valid"})
-                    }
-                    break;
-                default:
-                    console.info("AuthServiceEntryPoint: Auth Type is not valid")
-                    res.status(500).json({message: "AuthServiceEntryPoint: Auth Type is not valid"})
+            if(user.isVerified) {
+                console.error("AuthServiceLoginVerify: User Already Authorizer")
+                return res.status(404).json({message: "User Already Authorizer"})
+            }
+
+            if (AUTH_TYPE !== E_AUTH_TYPE.NICKNAME && user.otp) {
+                const verifiedOtp = await compareWithEncrypted(verifyUserPayload.otp, user?.otp!)
+                if (!verifiedOtp) {
+                    console.error("AuthServiceLoginVerify: OTP not valid")
+                    return res.status(400).json({message: "OTP Not valid"})
+                }
             }
 
             await userRepository.verifiedUser(user.id, {
                 firstName: verifyUserPayload.firstName,
                 lastName: verifyUserPayload.lastName
             })
+
+            console.info("AuthServiceLoginVerify: User successfully updated")
 
             return res.status(200).json({
                 id: user.id,
