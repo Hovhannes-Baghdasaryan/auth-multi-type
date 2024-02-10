@@ -31,6 +31,13 @@ export default (sequelize: Sequelize) => {
             allowNull: true,
             defaultValue: false
         }
+    }, {
+        indexes: [
+            {
+                unique: true,
+                fields: ['username']
+            }
+        ]
     })
 }
 
