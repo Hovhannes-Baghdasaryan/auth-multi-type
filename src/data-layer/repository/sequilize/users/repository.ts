@@ -8,11 +8,11 @@ class UserRepository {
 
     async findAllUsers(page = 1, per_page = 10): Promise<{ rows: UserInstance[], count: number }> {
         const offset = (page - 1) * per_page
-        return await this._userRepository.findAndCountAll({limit: per_page, offset})
+        return await this._userRepository.findAndCountAll({limit: per_page, offset, where: {isVerified: true}})
     }
 
     async findUserById(id: number): Promise<UserInstance | null> {
-        return await this._userRepository.findByPk(id)
+        return await this._userRepository.findOne({where: {id, isVerified: true}})
     }
 
     async findUserByUsername(username: string): Promise<UserInstance | null> {
