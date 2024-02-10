@@ -13,16 +13,17 @@ API DOCS
 # Auth Login Entry Point: http://localhost:3001/api/auth/login
 # username's type depends on env AUTH_TYPE the username is phone or mail or just nickname string.
 Body {
-    "username": "+37444738987"
+    "username": "37444738987" // without +
 }
 
 # Auth Login: http://localhost:3001/api/auth/login-verify
 # For nickname sign-in otp is omitted
 # Both firstName and lastName are optional.
 Body {
-    "username": "37444738987",
-    "firstName": "Hovulik",
-    "otp": "318653"
+    "username": "37444738987", // without (+) 
+    "first_ame": "First", // optional
+    "last_name": "last", // optional
+    "otp": "318653" // optional only when env.AUTH_TYPE=nickname
 }
 
 # Auth Login: http://localhost:3001/api/user/:id

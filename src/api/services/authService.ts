@@ -1,13 +1,21 @@
-import {Response} from "express"
 import codeService from "./codeService.ts";
 import {AUTH_TYPE} from "../../config/env.ts";
+import {handleError} from "../../common/helpers";
+import {hashUtil} from "./../../common/util"
 import {E_AUTH_TYPE} from "../../config/consts.ts";
-import {I_User, I_UserVerifyOtpPayload} from "../dto/userDto.ts";
+import {ResponseDto} from "../../common/dto/response.ts";
+import {UserResponseDto} from "../dto/response/userResponseDto.ts";
 import {userRepository} from "../../data-layer/repository/sequilize";
-import {compareWithEncrypted} from "../../util/hash.ts";
+import {I_UserVerifyOtpPayload} from "../dto/request/userRequestDto.ts";
+import {
+    NotFound404Exception,
+    BadRequest400Exception,
+    Forbidden403Exception,
+    Internal500Exception
+} from "../../common/exception";
 
 class AuthService {
-    async createEntryPointUser(username: string, res: Response): Promise<Response> {
+    async createEntryPointUser(username: string): Promise<ResponseDto<void>> {
         try {
             const user = await userRepository.findUserByUsername(username)
 
@@ -15,73 +23,74 @@ class AuthService {
                 case E_AUTH_TYPE.NICKNAME:
                     if (user) {
                         console.error(`AuthServiceEntryPoint: Already exists${username}`)
-                        return res.status(400).json({message: `AuthServiceEntryPoint: User with nickname ${username} already exists`})
+                        throw new Error(`AuthServiceEntryPoint: User with nickname ${username} already exists`)
                     }
 
                     await userRepository.createNewUser(username)
                     console.info("User with nickname created successfully")
 
-                    return res.status(200).json({message: `${username}`})
+                    return new ResponseDto({message: `User ${username} registered`})
 
                 case E_AUTH_TYPE.PHONE:
                 case E_AUTH_TYPE.EMAIL:
-                    const otp = await codeService.sendOtp(username, AUTH_TYPE, res)
+                    const otp = await codeService.sendOtp(username, AUTH_TYPE)
 
                     if (!user) {
-                        await userRepository.createNewUser(username, otp!)
+                        await userRepository.createNewUser(username, otp)
                     } else {
-                        await userRepository.updateOtp(user.id, otp!)
+                        await userRepository.updateOtp(user.id, otp)
                     }
 
                     console.info(`New OTP Sent to: ${username}`)
 
-                    return res.status(200).json({message: `New OTP Sent to: ${username}`})
+                    return new ResponseDto({message: `New OTP Sent to: ${username}`})
                 default:
                     console.info("AuthServiceEntryPoint: Auth Type is not valid")
-                    return res.status(500).json({message: "AuthServiceEntryPoint: Auth Type is not valid"})
+                    throw new BadRequest400Exception("AuthServiceEntryPoint: Auth Type is not valid")
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(`AuthServiceEntryPoint: ${error}`)
-            return res.status(500).json({message: `AuthServiceEntryPoint: Internal`})
+            handleError(error)
+            throw new Internal500Exception("AUTH_ENTRY_POINT_USER INTERNAL")
         }
     }
 
-    async verifyUser(verifyUserPayload: I_UserVerifyOtpPayload, res: Response): Promise<Response<I_User>> {
+    async verifyUser(verifyUserPayload: I_UserVerifyOtpPayload): Promise<ResponseDto<UserResponseDto>> {
         try {
             const user = await userRepository.findUserByUsername(verifyUserPayload.username)
             if (!user) {
                 console.error("AuthServiceLoginVerify: User not found")
-                return res.status(404).json({message: "User not found"})
+                throw new NotFound404Exception("User not found")
             }
 
-            if(user.isVerified) {
-                console.error("AuthServiceLoginVerify: User Already Authorizer")
-                return res.status(404).json({message: "User Already Authorizer"})
+            if (user.isVerified) {
+                console.error("AuthServiceLoginVerify: User Already Authorized")
+                throw new Forbidden403Exception("User Already Authorized")
             }
 
             if (AUTH_TYPE !== E_AUTH_TYPE.NICKNAME && user.otp) {
-                const verifiedOtp = await compareWithEncrypted(verifyUserPayload.otp, user?.otp!)
+                const verifiedOtp = await hashUtil.compareWithEncrypted(verifyUserPayload.otp.toString(), user.otp)
                 if (!verifiedOtp) {
                     console.error("AuthServiceLoginVerify: OTP not valid")
-                    return res.status(400).json({message: "OTP Not valid"})
+                    throw new BadRequest400Exception("OTP not valid")
                 }
             }
 
-            await userRepository.verifiedUser(user.id, {
-                firstName: verifyUserPayload.firstName,
-                lastName: verifyUserPayload.lastName
+            const updatedUser = await userRepository.verifiedUser(user.id, {
+                first_name: verifyUserPayload.first_name,
+                last_name: verifyUserPayload.last_name
             })
 
             console.info("AuthServiceLoginVerify: User successfully updated")
 
-            return res.status(200).json({
-                id: user.id,
-                firstName: verifyUserPayload.firstName,
-                lastName: verifyUserPayload.lastName,
-            } as I_User)
-        } catch (error) {
+            return new ResponseDto({
+                message: `${verifyUserPayload.username} has been Verified Successfully`,
+                data: new UserResponseDto(updatedUser)
+            })
+        } catch (error: any) {
             console.error(`AuthServiceLoginVerify: ${error}`)
-            return res.status(500).json({message: `AuthServiceLoginVerify: Internal`})
+            handleError(error)
+            throw new Internal500Exception("AUTH_VERIFY_USER INTERNAL")
         }
     }
 }

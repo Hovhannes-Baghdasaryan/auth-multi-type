@@ -1,6 +1,6 @@
 import {Model, Optional} from "sequelize";
 
-export interface UserAttributes {
+export interface UserAttribute {
     id: number;
     username: string;
     first_name: string | null;
@@ -9,9 +9,9 @@ export interface UserAttributes {
     isVerified?: boolean;
 }
 
-type UserCreationAttributes = Optional<UserAttributes, 'id'>;
+type UserCreationAttributes = Optional<UserAttribute, 'id'>;
 
-export interface UserInstance extends Model<UserAttributes, UserCreationAttributes>, UserAttributes {
+export interface UserInstance extends Model<UserAttribute, UserCreationAttributes>, UserAttribute {
     readonly createdAt?: Date;
     readonly updatedAt?: Date;
 }

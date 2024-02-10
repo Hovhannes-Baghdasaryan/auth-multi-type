@@ -1,12 +1,11 @@
-import {Response} from "express"
 import {transporter} from "../../config/mail.ts";
 import {E_AUTH_TYPE} from "../../config/consts.ts";
-import {otpGenerate} from "../../util";
-import {hash} from "../../util/hash.ts";
+import {otpGenerate} from "../../common/util";
+import {hashUtil} from "../../common/util";
 import client from "../../config/twilio.ts";
 
 class CodeService {
-    async sendOtp(username: string, authType: E_AUTH_TYPE, res: Response): Promise<string | undefined> {
+    async sendOtp(username: string, authType: E_AUTH_TYPE): Promise<string> {
         try {
             const newOtp = otpGenerate()
 
@@ -29,10 +28,10 @@ class CodeService {
 
             console.info("OTP sent successfully")
 
-            return hash(newOtp)
+            return hashUtil.hash(newOtp)
         } catch (error) {
             console.error(error)
-            res.status(500).json({error: `sendOtpCodeService: OTP not sent`})
+            throw new Error(`sendOtpCodeService: OTP not sent`)
         }
     }
 }

@@ -1,27 +1,46 @@
-import {Response} from 'express'
-import {I_User} from "../dto/userDto.ts";
+import {AllUsersPaginatedDto, UserResponseDto} from "../dto/response/userResponseDto.ts";
+import {ResponseDto} from "../../common/dto/response.ts";
 import {userRepository} from "../../data-layer/repository/sequilize";
-import {UserAttributes} from "../../data-layer/models/sequilize/users/types.ts";
+import {I_PaginatedResponse, I_Pagination} from "../../common/dto/pagination.ts";
+import {Internal500Exception, NotFound404Exception} from "../../common/exception";
+import {handleError} from "../../common/helpers";
 
 class UserService {
-    async getUser(userId: number, res: Response): Promise<Response<I_User>> {
+    async getUser(userId: number): Promise<ResponseDto<UserResponseDto>> {
         try {
             const user = await userRepository.findUserById(userId)
             if (!user) {
-                console.error("GetUserService: User not found")
-                return res.status(404).send("GetUserService: User not found")
+                console.error(`GetUserService: User not found ${userId}`)
+                throw new NotFound404Exception("GetUserService: User not found")
             }
 
-            console.info(`GetUserService: User found ${user.first_name}`)
+            console.info(`GetUserService: User found ${user.username}`)
 
-            return res.status(200).json({
-                id: user.id,
-                firstName: user.first_name,
-                lastName: user.last_name,
-            } as I_User)
-        } catch (error) {
+            return new ResponseDto({
+                message: 'Get Single User Successfully',
+                data: new UserResponseDto(user)
+            })
+        } catch (error: any) {
             console.error(`GetUserService: ${error}`)
-            return res.status(500).send("GetUserService: Internal")
+            handleError(error)
+            throw new Internal500Exception("GET_SINGLE_USER INTERNAL")
+        }
+    }
+
+    async getAllUsers(query: I_Pagination): Promise<ResponseDto<I_PaginatedResponse<UserResponseDto>>> {
+        try {
+            const results = await userRepository.findAllUsers(query.page, query.per_page)
+
+            console.info(`GetAllUsersService Successfully`)
+
+            return new ResponseDto({
+                message: 'Get All Users Successfully',
+                data: new AllUsersPaginatedDto({items: results.rows, total: results.count})
+            })
+        } catch (error: any) {
+            console.error(`GetAllUsersService: ${error}`)
+            handleError(error)
+            throw new Internal500Exception("GET_ALL_USERS INTERNAL")
         }
     }
 }
